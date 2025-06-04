@@ -2,7 +2,7 @@
 % Please edit documentation in R/infer_tree_structure.R
 \name{infer_tree_structure}
 \alias{infer_tree_structure}
-\title{Infer the pseudotime tree strucutre of the input data}
+\title{Infer the pseudotime tree structure of the input data}
 \usage{
 infer_tree_structure(
   pca,
@@ -15,41 +15,72 @@ infer_tree_structure(
   xlab = "PC1",
   ylab = "PC2",
   max.clunum = 50,
-  kmeans.seed = 12345
+  kmeans.seed = 12345,
+  clusters = NULL
 )
 }
 \arguments{
-\item{pca}{cell by principal component (pc) matrix. Principal components reduction of the cells.}
+\item{pca}{cell by principal component (PC) matrix. Principal components reduction of the cells. Row names should be cell IDs.}
 
-\item{cellanno}{2-column or 3-column dataframe/matrix, first column is cell name, second column is sample, third column (if exists) is cell type.}
+\item{cellanno}{2-column or 3-column data frame or matrix. First column is cell ID, second column is sample ID, and the third column (if present) is cell type.}
 
-\item{expression}{only useful when users want to use highly expressed marker genes to determine the starting point of pseudotime. It is a gene by cell expression matrix. The values should be library-size-normalized and log-transformed expression values. They can either be imputed or non-imputed.}
+\item{expression}{only used if users want to use highly expressed marker genes to determine the starting point of pseudotime. This should be a gene-by-cell matrix of log-transformed, library-size-normalized expression values. Can be either imputed or raw.}
 
-\item{origin.celltype}{only useful when users have specify the celltypes for the cells in cellanno[,3], and want to determin the starting point of pseudotime by this celltype.  It is a character of origin celltype. It should be one of the element in cellanno[,3] if it will be used. If NA (default), then not used.}
+\item{origin.marker}{a character vector specifying highly expressed marker genes used to identify the origin cluster in pseudotime inference. If \code{NA} (default), this option is not used.}
 
-\item{number.cluster}{the number of clusters in cell clustering that will be used in trajectory inference. If NA (default),the number of clusters will be determined automatically by elbow's method.}
+\item{origin.celltype}{only used when the third column of \code{cellanno} is specified, and users want to determine the starting point of pseudotime by a known cell type. Should be a string corresponding to one of the values in \code{cellanno[,3]}. If \code{NA} (default), this option is not used.}
 
-\item{plotdir}{plot directory for storing the figures of cluster.pdf and pseudotime.pdf. If NA (default), figures will not be generated.}
+\item{number.cluster}{number of clusters to use in cell clustering. If \code{NA} (default), the number is chosen automatically using the elbow method. Ignored if \code{clusters} is provided.}
 
-\item{xlab}{the x-axis labels for the figures.}
+\item{plotdir}{output directory for saving the plots \code{cluster.pdf} and \code{pseudotime.pdf}. If \code{NA} (default), no plots will be generated.}
 
-\item{ylab}{the y-axis labels for the figures.}
+\item{xlab}{x-axis label for the plots.}
 
-\item{max.clunum}{the maximum number of clusters in the elbew's method.}
+\item{ylab}{y-axis label for the plots.}
 
-\item{origin.marker:}{a character or a character vector specifying the highly expressed marker genes used to identify the origin cluster in pseudotime inference.If NA (default), then not used.}
+\item{max.clunum}{maximum number of clusters to consider when using the elbow method to choose the number of principal components.}
+
+\item{kmeans.seed}{random seed used for k-means clustering when \code{clusters} is not provided.}
+
+\item{clusters}{optional user-supplied named integer vector of cluster labels. If \code{NULL} (default), clustering will be performed using k-means. 
+The vector must:
+\enumerate{
+  \item Be named with cell IDs matching the row names of \code{pca}.
+  \item Contain only consecutive integer values starting from 1 (e.g., 1, 2, 3, ..., K).
+  \item Have no missing values or breaks in the sequence.
+}
+}
 }
 \value{
-a list
+A list containing pseudotime information, clustering, MST structure, and branch reproducibility scores.
 }
 \description{
-This function takes a low dimensional-reduction representation (for example, pca), the cell annotation, etc. as inputs, and then infer the pseudotime tree structures for further assessing the uncertainty of each of the pseudotime tree branches.
+This function infers pseudotime tree structures from low-dimensional representations (e.g., PCA) of single-cell data. It optionally uses user-defined cluster labels and identifies the root of the trajectory using either marker genes or annotated cell types. The resulting pseudotime ordering and tree branches can be used to assess lineage uncertainty and structure.
 }
 \examples{
 data(hca_bm_pca)
 data(hca_bm_saver)
 data(hca_bm_cellanno)
-res = infer_tree_structure(pca = hca_bm_pca, expression = hca_bm_saver, cellanno = hca_bm_cellanno, origin.marker = c('CD34'), xlab='Principal component 1', ylab = 'Principal component 2')
+
+# Default usage with k-means clustering
+res <- infer_tree_structure(
+  pca = hca_bm_pca,
+  expression = hca_bm_saver,
+  cellanno = hca_bm_cellanno,
+  origin.marker = c("CD34"),
+  xlab = "Principal component 1",
+  ylab = "Principal component 2"
+)
+
+# Example with user-supplied clustering (must be named and consecutive integers starting from 1)
+custom_clusters <- setNames(as.integer(factor(seurat_clusters)), names(seurat_clusters))
+res2 <- infer_tree_structure(
+  pca = hca_bm_pca,
+  expression = hca_bm_saver,
+  cellanno = hca_bm_cellanno,
+  origin.marker = c("CD34"),
+  clusters = custom_clusters
+)
 }
 \author{
 Wenpin Hou <whou10@jhu.edu>
