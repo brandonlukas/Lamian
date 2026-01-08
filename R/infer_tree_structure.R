@@ -144,7 +144,6 @@ infer_tree_structure <-
     ord <-
       TSCANorder(
         mcl,
-        startcluster = origin.cluster,
         listbranch = TRUE,
         orderonly = TRUE
       )
